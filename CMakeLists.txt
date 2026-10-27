@@ -17,6 +17,9 @@ find_package(glfw3 REQUIRED)
 
 find_package(assimp REQUIRED)
 
+find_package(OpenCV REQUIRED)
+
+
 set(IMGUI_SOURCES
     external/imgui/imgui.cpp
     external/imgui/imgui_draw.cpp
@@ -58,11 +61,13 @@ target_include_directories(app PRIVATE
     external/imgui
     includes
     ${CMAKE_BINARY_DIR}/generated   
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(app
     glfw
     assimp::assimp
+    ${OpenCV_LIBS}
     "-framework OpenGL"
     "-framework Cocoa"
     "-framework IOKit"
