@@ -97,6 +97,15 @@ int main() {
     processInput(window);
     
     Gui::BeginFrame();
+   
+    cv::Mat cameraFrame;
+    if (webCam.isOpened()) {
+        webCam >> cameraFrame;
+
+        if (cameraFrame.empty()) {
+            std::cerr << "Failed to capture camera frame\n";
+        }
+    }
     
     DrawMenu();    
 
