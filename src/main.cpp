@@ -14,6 +14,7 @@
 #include <vector>
 #include <gui.h>
 #include <shapes.h>
+#include <opencv2/opencv.hpp>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void window_size_callback(GLFWwindow *window, int width, int height);
@@ -47,6 +48,8 @@ void DrawMenu()
     ImGui::End();
 }
 
+cv::VideoCapture webCam;
+
 int main() {
 
   std::cout << "Hello, World!" << std::endl;
@@ -64,6 +67,17 @@ int main() {
     return -1;
   }
   
+  // Initialize webcam
+  if (!webCam.open(0)) {
+      std::cerr << "Failed to open webcam\n";
+      return -1;
+  }
+
+  webCam.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+  webCam.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+
+  std::cout << "Webcam initialized\n";
+
   unsigned int vbo, vao;
   std::vector<float> vertices;
   Shader shader = Shader((std::string(logl_root) + "/src/shaders/shader.vs").c_str(), (std::string(logl_root) + "/src/shaders/shader.fs").c_str());
