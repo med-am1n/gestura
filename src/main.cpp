@@ -138,7 +138,8 @@ int main() {
   }
 
   Gui::Shutdown();
-  
+ 
+  webCam.release();
   glfwTerminate();
 
   return 0;
