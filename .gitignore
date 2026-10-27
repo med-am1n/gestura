@@ -40,3 +40,6 @@ cmake_install.cmake
 # Output executables
 app
 *.out
+
+# Dear ImGui layout configuration
+*.ini
