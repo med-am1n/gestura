@@ -172,6 +172,28 @@ int main() {
             input_shape.data(),
             input_shape.size()
         );
+        
+        // Run inference
+        auto outputTensors = session.Run(
+            Ort::RunOptions{nullptr},
+            input_names.data(),
+            &inputTensor,
+            1,
+            output_names.data(),
+            output_names.size()
+        );
+
+        // Inspect output shapes
+        for (size_t i = 0; i < outputTensors.size(); ++i) {
+            auto info = outputTensors[i].GetTensorTypeAndShapeInfo();
+            auto shape = info.GetShape();
+
+            std::cout << "Output " << i << " shape: ";
+            for (auto dim : shape) {
+                std::cout << dim << " ";
+            }
+            std::cout << '\n';
+        }
     }
     
     DrawMenu();    
