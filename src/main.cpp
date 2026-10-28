@@ -134,6 +134,33 @@ int main() {
         if (cameraFrame.empty()) {
             std::cerr << "Failed to capture camera frame\n";
         }
+
+        // preprocessing the frmae
+        cv::Mat resized;
+        cv::resize(cameraFrame, resized, cv::Size(192, 192));
+
+        // Convert BGR image to float32
+        cv::Mat floatImage;
+        resized.convertTo(floatImage, CV_32FC3);
+
+        std::vector<float> inputTensorValues(1 * 3 * 192 * 192);
+
+        const int width = 192;
+        const int height = 192;
+        const int planeSize = width * height;
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                cv::Vec3f pixel = floatImage.at<cv::Vec3f>(y, x);
+
+                int index = y * width + x;
+
+                // OpenCV BGR order
+                inputTensorValues[index] = pixel[0];
+                inputTensorValues[planeSize + index] = pixel[1];
+                inputTensorValues[2 * planeSize + index] = pixel[2];
+            }
+        }
     }
     
     DrawMenu();    
