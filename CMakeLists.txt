@@ -19,6 +19,7 @@ find_package(assimp REQUIRED)
 
 find_package(OpenCV REQUIRED)
 
+find_library(ONNX_LIB onnxruntime HINTS "${CMAKE_CURRENT_SOURCE_DIR}/external/onnxruntime/lib" REQUIRED)
 
 set(IMGUI_SOURCES
     external/imgui/imgui.cpp
@@ -62,12 +63,14 @@ target_include_directories(app PRIVATE
     includes
     ${CMAKE_BINARY_DIR}/generated   
     ${OpenCV_INCLUDE_DIRS}
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/onnxruntime/include"
 )
 
 target_link_libraries(app
     glfw
     assimp::assimp
     ${OpenCV_LIBS}
+    ${ONNX_LIB}
     "-framework OpenGL"
     "-framework Cocoa"
     "-framework IOKit"

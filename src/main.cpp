@@ -15,6 +15,8 @@
 #include <gui.h>
 #include <shapes.h>
 #include <opencv2/opencv.hpp>
+#include <onnxruntime_cxx_api.h>
+
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void window_size_callback(GLFWwindow *window, int width, int height);
