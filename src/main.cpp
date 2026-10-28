@@ -161,6 +161,17 @@ int main() {
                 inputTensorValues[2 * planeSize + index] = pixel[2];
             }
         }
+
+        // Create the ONNX input tensor
+        Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemTypeDefault);
+
+        Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
+            memory_info,
+            inputTensorValues.data(),
+            inputTensorValues.size(),
+            input_shape.data(),
+            input_shape.size()
+        );
     }
     
     DrawMenu();    
