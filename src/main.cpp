@@ -1,7 +1,9 @@
 #include "camera.h"
 #include "imgui.h"
+#include "onnxruntime_c_api.h"
 #include "shader.h"
 #include <GLFW/glfw3.h>
+#include <cstddef>
 #include <filesystem.h>
 #include <glad/glad.h>
 #include <iostream>
@@ -11,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <string>
 #include <vector>
 #include <gui.h>
 #include <shapes.h>
@@ -68,7 +71,31 @@ int main() {
     std::cout << "Failed to initialize GLAD\n";
     return -1;
   }
+ 
+  // Load onnx model
+  Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime");
+  Ort::SessionOptions session_options;
+  Ort::Session session(env, (std::string(logl_root) + "/models/palm_detection_mediapipe_2023feb.onnx").c_str(), session_options);
+
+  Ort::AllocatorWithDefaultOptions allocator;
+
+  size_t input_modes_size = session.GetInputCount();
+  for(size_t i=0; i< input_modes_size; i++){
+    Ort::AllocatedStringPtr input_name = session.GetInputNameAllocated(i, allocator);
+    std::cout << "Input Name "<<i << ": "<<input_name.get()<<std::endl;
+  }
+
+  size_t output_modes_size = session.GetOutputCount();
+  for(size_t i=0; i< output_modes_size; i++){
+    Ort::AllocatedStringPtr output_name = session.GetOutputNameAllocated(i, allocator);
+    std::cout << "Output Name "<<i << ": "<<output_name.get()<<std::endl;
+  }
+ 
+  std::vector<const char*> input_names = {"input_1"};
+  std::vector<const char*> output_names = {"Identity", "Identity_1"};
+  std::vector<int64_t> input_shape = {1, 192, 192, 3};  
   
+
   // Initialize webcam
   if (!webCam.open(0)) {
       std::cerr << "Failed to open webcam\n";
