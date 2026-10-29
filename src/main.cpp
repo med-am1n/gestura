@@ -87,10 +87,28 @@ int main() {
 
   HandPoseDetector handPoseDetector(std::string(logl_root) +"/models/handpose_estimation_mediapipe_2023feb.onnx");
 
-  unsigned int vbo, vao;
-  std::vector<float> vertices;
-  Shader shader = Shader((std::string(logl_root) + "/src/shaders/shader.vs").c_str(), (std::string(logl_root) + "/src/shaders/shader.fs").c_str());
+  unsigned int landmarkVAO, landmarkVBO;
+  glGenVertexArrays(1, &landmarkVAO);
+  glGenBuffers(1, &landmarkVBO);
 
+  glBindVertexArray(landmarkVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, landmarkVBO);
+
+  glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+
+  glBindVertexArray(0);
+
+  Shader landmarkShader(
+      (std::string(logl_root) + "/src/shaders/landmarks.vs").c_str(),
+      (std::string(logl_root) + "/src/shaders/landmarks.fs").c_str()
+  );
+
+  std::vector<float> landmarkPoints;
+  std::vector<float> landmarkLines;
+  
   glEnable(GL_DEPTH_TEST);
   
   // initialize Imgui
@@ -107,27 +125,54 @@ int main() {
     
     Gui::BeginFrame();
    
-    cv::Mat cameraFrame;
-    if (webCam.isOpened()) {
-        webCam >> cameraFrame;
+    landmarkPoints.clear();
+    landmarkLines.clear();
 
-        if (cameraFrame.empty()) {
-            std::cerr << "Failed to capture camera frame\n";
-        }
+    cv::Mat cameraFrame;
+    webCam >> cameraFrame;
+
+    if (!cameraFrame.empty()) {
         auto palms = palmDetector.detect(cameraFrame);
+
         for (const auto& palm : palms) {
             try {
                 HandPose hand = handPoseDetector.detect(cameraFrame, palm);
-                HandPoseDetector::draw(cameraFrame, hand);
-              }
-            catch (const std::runtime_error&) {
-                // The hand crop may be invalid or confidence too low.
+
+                // Convert camera pixels to OpenGL NDC coordinates.
+                auto toNDC = [&](const cv::Point3f& p) {
+                    float x = 2.0f * p.x / cameraFrame.cols - 1.0f;
+                    float y = 1.0f - 2.0f * p.y / cameraFrame.rows;
+                    return glm::vec2(x, y);
+                };
+
+                for (const auto& p : hand.landmarks) {
+                    glm::vec2 pos = toNDC(p);
+
+                    landmarkPoints.push_back(pos.x);
+                    landmarkPoints.push_back(pos.y);
+                }
+
+                // Connect the joints into a hand skeleton.
+                const int connections[][2] = {
+                    {0,1}, {1,2}, {2,3}, {3,4},
+                    {0,5}, {5,6}, {6,7}, {7,8},
+                    {0,9}, {9,10}, {10,11}, {11,12},
+                    {0,13}, {13,14}, {14,15}, {15,16},
+                    {0,17}, {17,18}, {18,19}, {19,20},
+                    {5,9}, {9,13}, {13,17}
+                };
+
+                for (const auto& edge : connections) {
+                    glm::vec2 a = toNDC(hand.landmarks[edge[0]]);
+                    glm::vec2 b = toNDC(hand.landmarks[edge[1]]);
+
+                    landmarkLines.insert(landmarkLines.end(),{a.x, a.y, b.x, b.y});
+                }
             }
-      }
-        
-
-        cv::imshow("Hand Pose", cameraFrame);
-
+            catch (const std::runtime_error&) {
+                // Skip invalid or low-confidence detections.
+            }
+        }
     }
     
     DrawMenu();    
@@ -143,13 +188,28 @@ int main() {
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 model = glm::mat4(1.0f);
       
-    shader.use();
-    shader.setMat4("projection", projection);
-    shader.setMat4("view", view);
-    shader.setMat4("model", model);
-    
-    glBindVertexArray(vao);
-    glDrawArrays(GL_POINTS, 0, vertices.size()/3);
+    glDisable(GL_DEPTH_TEST);
+
+    landmarkShader.use();
+    landmarkShader.setVec3("pointColor", glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glBindVertexArray(landmarkVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, landmarkVBO);
+
+    // Upload and draw skeleton lines.
+    if (!landmarkLines.empty()) {
+        
+        glBufferData(GL_ARRAY_BUFFER, landmarkLines.size() * sizeof(float), landmarkLines.data(), GL_DYNAMIC_DRAW);
+        glDrawArrays(GL_LINES, 0, landmarkLines.size() / 2);
+    }
+
+    // Upload and draw landmark points.
+    if (!landmarkPoints.empty()) {
+        
+        glBufferData(GL_ARRAY_BUFFER,landmarkPoints.size() * sizeof(float), landmarkPoints.data(), GL_DYNAMIC_DRAW);
+        glDrawArrays(GL_POINTS, 0, landmarkPoints.size() / 2);
+    }
+
     glBindVertexArray(0);
 
     Gui::EndFrame();
