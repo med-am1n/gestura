@@ -120,10 +120,10 @@ int main() {
                 HandPose hand = handPoseDetector.detect(cameraFrame, palm);
                 HandPoseDetector::draw(cameraFrame, hand);
               }
-      catch (const std::runtime_error&) {
-          // The hand crop may be invalid or confidence too low.
+            catch (const std::runtime_error&) {
+                // The hand crop may be invalid or confidence too low.
+            }
       }
-}
         
 
         cv::imshow("Hand Pose", cameraFrame);
