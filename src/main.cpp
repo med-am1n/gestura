@@ -1,6 +1,5 @@
 #include "camera.h"
 #include "imgui.h"
-#include "onnxruntime_c_api.h"
 #include "shader.h"
 #include <GLFW/glfw3.h>
 #include <cstddef>
@@ -19,7 +18,7 @@
 #include <shapes.h>
 #include <opencv2/opencv.hpp>
 #include <onnxruntime_cxx_api.h>
-
+#include <palm_detector.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void window_size_callback(GLFWwindow *window, int width, int height);
@@ -71,30 +70,6 @@ int main() {
     std::cout << "Failed to initialize GLAD\n";
     return -1;
   }
- 
-  // Load onnx model
-  Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime");
-  Ort::SessionOptions session_options;
-  Ort::Session session(env, (std::string(logl_root) + "/models/palm_detection_mediapipe_2023feb.onnx").c_str(), session_options);
-
-  Ort::AllocatorWithDefaultOptions allocator;
-
-  size_t input_modes_size = session.GetInputCount();
-  for(size_t i=0; i< input_modes_size; i++){
-    Ort::AllocatedStringPtr input_name = session.GetInputNameAllocated(i, allocator);
-    std::cout << "Input Name "<<i << ": "<<input_name.get()<<std::endl;
-  }
-
-  size_t output_modes_size = session.GetOutputCount();
-  for(size_t i=0; i< output_modes_size; i++){
-    Ort::AllocatedStringPtr output_name = session.GetOutputNameAllocated(i, allocator);
-    std::cout << "Output Name "<<i << ": "<<output_name.get()<<std::endl;
-  }
- 
-  std::vector<const char*> input_names = {"input_1"};
-  std::vector<const char*> output_names = {"Identity", "Identity_1"};
-  std::vector<int64_t> input_shape = {1, 192, 192, 3};  
-  
 
   // Initialize webcam
   if (!webCam.open(0)) {
@@ -106,6 +81,8 @@ int main() {
   webCam.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
   std::cout << "Webcam initialized\n";
+
+  PalmDetector palmDetector;
 
   unsigned int vbo, vao;
   std::vector<float> vertices;
@@ -134,66 +111,11 @@ int main() {
         if (cameraFrame.empty()) {
             std::cerr << "Failed to capture camera frame\n";
         }
+        auto detections = palmDetector.detect(cameraFrame);
+        PalmDetector::draw(cameraFrame, detections);
 
-        // preprocessing the frmae
-        cv::Mat resized;
-        cv::resize(cameraFrame, resized, cv::Size(192, 192));
+        cv::imshow("Palm Detection Camera", cameraFrame);
 
-        // Convert BGR image to float32
-        cv::Mat floatImage;
-        resized.convertTo(floatImage, CV_32FC3);
-
-        std::vector<float> inputTensorValues(1 * 3 * 192 * 192);
-
-        const int width = 192;
-        const int height = 192;
-        const int planeSize = width * height;
-
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                cv::Vec3f pixel = floatImage.at<cv::Vec3f>(y, x);
-
-                int index = y * width + x;
-
-                // OpenCV BGR order
-                inputTensorValues[index] = pixel[0];
-                inputTensorValues[planeSize + index] = pixel[1];
-                inputTensorValues[2 * planeSize + index] = pixel[2];
-            }
-        }
-
-        // Create the ONNX input tensor
-        Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemTypeDefault);
-
-        Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
-            memory_info,
-            inputTensorValues.data(),
-            inputTensorValues.size(),
-            input_shape.data(),
-            input_shape.size()
-        );
-        
-        // Run inference
-        auto outputTensors = session.Run(
-            Ort::RunOptions{nullptr},
-            input_names.data(),
-            &inputTensor,
-            1,
-            output_names.data(),
-            output_names.size()
-        );
-
-        // Inspect output shapes
-        for (size_t i = 0; i < outputTensors.size(); ++i) {
-            auto info = outputTensors[i].GetTensorTypeAndShapeInfo();
-            auto shape = info.GetShape();
-
-            std::cout << "Output " << i << " shape: ";
-            for (auto dim : shape) {
-                std::cout << dim << " ";
-            }
-            std::cout << '\n';
-        }
     }
     
     DrawMenu();    
@@ -224,6 +146,8 @@ int main() {
 
     // check and call events
     glfwPollEvents();
+
+    cv::waitKey(1);
   }
 
   Gui::Shutdown();
