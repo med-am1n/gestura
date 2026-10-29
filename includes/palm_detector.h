@@ -23,9 +23,9 @@ public:
     static constexpr int INPUT_SIZE = 192;
     static constexpr int NUM_ANCHORS = 2016;
 
-    PalmDetector()
+    PalmDetector(const std::string& modelPath)
         : env_(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime"),
-          session_(env_, (std::string(logl_root) + "/models/palm_detection_mediapipe_2023feb.onnx").c_str(), Ort::SessionOptions{})
+          session_(env_, modelPath.c_str(), Ort::SessionOptions{})
     {
         anchors_ = loadAnchors();
 

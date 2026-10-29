@@ -83,7 +83,7 @@ int main() {
 
   std::cout << "Webcam initialized\n";
 
-  PalmDetector palmDetector;
+  PalmDetector palmDetector(std::string(logl_root) +"/models/palm_detection_mediapipe_2023feb.onnx");
 
   HandPoseDetector handPoseDetector(std::string(logl_root) +"/models/handpose_estimation_mediapipe_2023feb.onnx");
 
