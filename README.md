@@ -1,9 +1,11 @@
-# Getsura
+# Gestura
 
 ## Dependencies
     - OpenGL APIs: gl:core=3.3
     - glad 2.0.8
     - C++17
+    - onnxruntime-osx-arm64-1.31.1 (it works only in mac now, update it later!!)
+    - opencv 5.0.0 
 
 ## Getting Started
 
