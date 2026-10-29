@@ -19,6 +19,7 @@
 #include <opencv2/opencv.hpp>
 #include <onnxruntime_cxx_api.h>
 #include <palm_detector.h>
+#include <hand_pose_detector.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void window_size_callback(GLFWwindow *window, int width, int height);
@@ -84,6 +85,8 @@ int main() {
 
   PalmDetector palmDetector;
 
+  HandPoseDetector handPoseDetector(std::string(logl_root) +"/models/handpose_estimation_mediapipe_2023feb.onnx");
+
   unsigned int vbo, vao;
   std::vector<float> vertices;
   Shader shader = Shader((std::string(logl_root) + "/src/shaders/shader.vs").c_str(), (std::string(logl_root) + "/src/shaders/shader.fs").c_str());
@@ -111,10 +114,19 @@ int main() {
         if (cameraFrame.empty()) {
             std::cerr << "Failed to capture camera frame\n";
         }
-        auto detections = palmDetector.detect(cameraFrame);
-        PalmDetector::draw(cameraFrame, detections);
+        auto palms = palmDetector.detect(cameraFrame);
+        for (const auto& palm : palms) {
+            try {
+                HandPose hand = handPoseDetector.detect(cameraFrame, palm);
+                HandPoseDetector::draw(cameraFrame, hand);
+              }
+      catch (const std::runtime_error&) {
+          // The hand crop may be invalid or confidence too low.
+      }
+}
+        
 
-        cv::imshow("Palm Detection Camera", cameraFrame);
+        cv::imshow("Hand Pose", cameraFrame);
 
     }
     
