@@ -1,5 +1,9 @@
 # Gestura
 
+C++/OpenGL + ONNX Runtime setup for gesture-controlled 3D rendering 
+
+![demo](./demo.png)
+
 ## Dependencies
     - OpenGL APIs: gl:core=3.3
     - glad 2.0.8
