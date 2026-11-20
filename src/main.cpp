@@ -20,6 +20,7 @@
 #include <onnxruntime_cxx_api.h>
 #include <palm_detector.h>
 #include <hand_pose_detector.h>
+#include <particle_system.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void window_size_callback(GLFWwindow *window, int width, int height);
@@ -132,6 +133,21 @@ int main() {
   std::vector<float> landmarkPoints;
   std::vector<float> landmarkLines;
   
+  ParticleSystem particleSystem(
+      std::string(logl_root) + "/src/shaders/particle.vs",
+      std::string(logl_root) + "/src/shaders/particle.fs"
+  );
+
+  ParticleProps pointerParticle;
+  pointerParticle.Velocity          = { 0.0f, 0.0f };
+  pointerParticle.VelocityVariation = { 0.6f, 0.6f };          // spread, in NDC units/sec
+  pointerParticle.ColorBegin        = { 1.0f, 0.6f, 0.1f, 1.0f };
+  pointerParticle.ColorEnd          = { 0.6f, 0.1f, 0.9f, 0.0f };
+  pointerParticle.SizeBegin         = 0.04f;
+  pointerParticle.SizeVariation     = 0.02f;
+  pointerParticle.SizeEnd           = 0.0f;
+  pointerParticle.LifeTime          = 0.8f;
+  
   glEnable(GL_DEPTH_TEST);
   
   // initialize Imgui
@@ -161,7 +177,8 @@ int main() {
         for (const auto& palm : palms) {
             try {
                 HandPose hand = handPoseDetector.detect(cameraFrame, palm);
-                detectedGestures.push_back(classifyGesture(hand));
+                std::string gesture = classifyGesture(hand);
+                detectedGestures.push_back(gesture);
 
                 // Convert camera pixels to OpenGL NDC coordinates.
                 auto toNDC = [&](const cv::Point3f& p) {
@@ -169,6 +186,15 @@ int main() {
                     float y = 1.0f - 2.0f * p.y / cameraFrame.rows;
                     return glm::vec2(x, y);
                 };
+
+                // Emit particles from the index fingertip while pointing.
+                if (gesture == "Pointing") {
+                    glm::vec2 tip = toNDC(hand.landmarks[8]);   // 8 = index fingertip
+                    float aspect = (float)windowWidth / (float)windowHeight;
+                    pointerParticle.Position = { tip.x * aspect, tip.y };
+                    for (int i = 0; i < 5; ++i)
+                        particleSystem.Emit(pointerParticle);
+                }
 
                 for (const auto& p : hand.landmarks) {
                     glm::vec2 pos = toNDC(p);
@@ -236,6 +262,16 @@ int main() {
     }
 
     glBindVertexArray(0);
+
+    // Particles share the landmarks' 2D NDC space, aspect-corrected so quads stay square.
+    float aspect = (float)windowWidth / (float)windowHeight;
+    glm::mat4 particleViewProj = glm::ortho(-aspect, aspect, -1.0f, 1.0f);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    particleSystem.OnUpdate(deltaTime);
+    particleSystem.OnRender(particleViewProj);
+    glDisable(GL_BLEND);
 
     Gui::EndFrame();
     
