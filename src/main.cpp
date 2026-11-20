@@ -43,13 +43,36 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+std::array<bool,5> fingerStates(const HandPose& h) {
+  auto d = [&](int a, int b){ return cv::norm(h.landmarks[a] - h.landmarks[b]); };
+  std::array<bool,5> up;
+  up[0] = d(4, 17) > d(3, 17);                  // thumb
+  const int tips[] = {8, 12, 16, 20}, pips[] = {6, 10, 14, 18};
+  for (int i = 0; i < 4; ++i)
+      up[i+1] = d(tips[i], 0) > d(pips[i], 0);  // other fingers
+  return up;
+}
 
-void DrawMenu()
-{
+std::vector<std::string> detectedGestures;
+
+std::string classifyGesture(const HandPose& h) {
+  auto f = fingerStates(h);   // {thumb, index, middle, ring, pinky}
+  using A = std::array<bool,5>;
+  if (f == A{0,0,0,0,0}) return "Fist";
+  if (f == A{1,1,1,1,1}) return "Open Palm";
+  if (f == A{0,1,0,0,0}) return "Pointing";
+  if (f == A{0,1,1,0,0}) return "Victory";
+  if (f == A{1,0,0,0,0}) return "Thumb";
+  if (f == A{1,1,0,0,1}) return "I Love You";
+  if (f == A{0,1,0,0,1}) return "Rock";
+  return "Unknown";
+}
+
+void DrawMenu() {
     ImGui::Begin("Menu");
-
-    ImGui::Text("window : %.0f x %.0f", (float)windowWidth, (float)windowHeight); 
-      
+    ImGui::Text("window : %.0f x %.0f", (float)windowWidth, (float)windowHeight);
+    for (size_t i = 0; i < detectedGestures.size(); ++i)
+        ImGui::Text("Hand %zu: %s", i + 1, detectedGestures[i].c_str());
     ImGui::End();
 }
 
@@ -127,6 +150,7 @@ int main() {
    
     landmarkPoints.clear();
     landmarkLines.clear();
+    detectedGestures.clear();
 
     cv::Mat cameraFrame;
     webCam >> cameraFrame;
@@ -137,6 +161,7 @@ int main() {
         for (const auto& palm : palms) {
             try {
                 HandPose hand = handPoseDetector.detect(cameraFrame, palm);
+                detectedGestures.push_back(classifyGesture(hand));
 
                 // Convert camera pixels to OpenGL NDC coordinates.
                 auto toNDC = [&](const cv::Point3f& p) {
