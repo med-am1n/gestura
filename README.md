@@ -5,8 +5,8 @@ C++/OpenGL + ONNX Runtime setup for gesture-controlled 3D rendering
 ![demo](./demo.png)
 
 ## Dependencies
-    - OpenGL APIs: gl:core=3.3
-    - glad 2.0.8
+    - OpenGL APIs: gl:core=4.1
+    - glad 4.1
     - C++17
     - onnxruntime-osx-arm64-1.31.1 (it works only in mac now, update it later!!)
     - opencv 5.0.0 
