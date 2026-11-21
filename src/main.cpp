@@ -71,6 +71,7 @@ std::string classifyGesture(const HandPose& h) {
 
 int particlesCount  =0;
 std::string prevGesture = "";
+float flash = 0.0f;  
 
   void DrawMenu() {
     ImGui::Begin("Menu");
@@ -242,6 +243,9 @@ int main() {
                     pointerParticle.SizeBegin = 0.1f;
                     for (int i = 0; i < particlesCount; ++i)
                         particleSystem.Emit(pointerParticle);
+
+                    // Background flash, stronger for a bigger charge.
+                    flash = glm::max(flash, particlesCount / 100.0f);
                 }
 
                 if (gesture != "Unknown") {
@@ -275,7 +279,10 @@ int main() {
     
     DrawMenu();    
 
-    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+    // Fade the release flash out 
+    flash = glm::max(0.0f, flash - deltaTime * 2.5f);
+    glm::vec3 bg = glm::mix(glm::vec3(0.3f), glm::vec3(1.0f, 0.85f, 0.6f), flash * 0.8f);
+    glClearColor(bg.r, bg.g, bg.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // rendering commands here
