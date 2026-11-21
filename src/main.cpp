@@ -75,9 +75,10 @@ std::string prevGesture = "";
   void DrawMenu() {
     ImGui::Begin("Menu");
     ImGui::Text("window : %.0f x %.0f", (float)windowWidth, (float)windowHeight);
-    for (size_t i = 0; i < detectedGestures.size(); ++i)
+    for (size_t i = 0; i < detectedGestures.size(); ++i){
         ImGui::Text("Hand %zu: %s", i + 1, detectedGestures[i].c_str());
-    ImGui::Text ("Particles Count: %d", particlesCount);
+        ImGui::Text ("Particles Count: %d", particlesCount);
+    }
     ImGui::End();
 }
 
@@ -196,6 +197,9 @@ int main() {
                     glm::vec2 tip = toNDC(hand.landmarks[8]);   // 8 = index fingertip
                     float aspect = (float)windowWidth / (float)windowHeight;
                     pointerParticle.Position = { tip.x * aspect, tip.y };
+                    pointerParticle.VelocityVariation = { 0.6f, 0.6f };  
+                    pointerParticle.SizeVariation     = 0.02f;
+                    pointerParticle.SizeBegin         = 0.04f;
                     for (int i = 0; i < 5; ++i)
                         particleSystem.Emit(pointerParticle);
                 }
@@ -209,6 +213,9 @@ int main() {
                     glm::vec2 c = toNDC(hand.landmarks[9]);   // 9 = middle-finger base
                     float aspect = (float)windowWidth / (float)windowHeight;
                     pointerParticle.Position = { c.x * aspect, c.y };
+                    pointerParticle.VelocityVariation = { 2.0f, 2.0f };
+                    pointerParticle.SizeVariation     = 0.04f;
+                    pointerParticle.SizeBegin = 0.1f;
                     for (int i = 0; i < particlesCount; ++i)
                         particleSystem.Emit(pointerParticle);
                 }
