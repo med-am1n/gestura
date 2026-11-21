@@ -207,7 +207,8 @@ int main() {
 
 
                 if (gesture == "Fist" || gesture == "Thumb" ) {
-                    particlesCount++;
+                    if(particlesCount<100)
+                        particlesCount++;
                 }
 
                 if (gesture == "Open Palm" && (prevGesture == "Fist" || prevGesture == "Thumb") && particlesCount > 0) {
