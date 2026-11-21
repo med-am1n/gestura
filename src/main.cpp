@@ -77,8 +77,9 @@ std::string prevGesture = "";
     ImGui::Text("window : %.0f x %.0f", (float)windowWidth, (float)windowHeight);
     for (size_t i = 0; i < detectedGestures.size(); ++i){
         ImGui::Text("Hand %zu: %s", i + 1, detectedGestures[i].c_str());
-        ImGui::Text ("Particles Count: %d", particlesCount);
     }
+    if(detectedGestures.size() != 0) 
+      ImGui::Text ("Particles Count: %d", particlesCount);
     ImGui::End();
 }
 
