@@ -69,11 +69,15 @@ std::string classifyGesture(const HandPose& h) {
   return "Unknown";
 }
 
-void DrawMenu() {
+int particlesCount  =0;
+std::string prevGesture = "";
+
+  void DrawMenu() {
     ImGui::Begin("Menu");
     ImGui::Text("window : %.0f x %.0f", (float)windowWidth, (float)windowHeight);
     for (size_t i = 0; i < detectedGestures.size(); ++i)
         ImGui::Text("Hand %zu: %s", i + 1, detectedGestures[i].c_str());
+    ImGui::Text ("Particles Count: %d", particlesCount);
     ImGui::End();
 }
 
@@ -196,11 +200,23 @@ int main() {
                         particleSystem.Emit(pointerParticle);
                 }
 
-                for (const auto& p : hand.landmarks) {
-                    glm::vec2 pos = toNDC(p);
 
-                    landmarkPoints.push_back(pos.x);
-                    landmarkPoints.push_back(pos.y);
+                if (gesture == "Fist" || gesture == "Thumb" ) {
+                    particlesCount++;
+                }
+
+                if (gesture == "Open Palm" && (prevGesture == "Fist" || prevGesture == "Thumb") && particlesCount > 0) {
+                    glm::vec2 c = toNDC(hand.landmarks[9]);   // 9 = middle-finger base
+                    float aspect = (float)windowWidth / (float)windowHeight;
+                    pointerParticle.Position = { c.x * aspect, c.y };
+                    for (int i = 0; i < particlesCount; ++i)
+                        particleSystem.Emit(pointerParticle);
+                }
+
+                if (gesture != "Unknown") {
+                    if (gesture != "Fist" && gesture != "Thumb" )
+                        particlesCount = 0;
+                    prevGesture = gesture;   
                 }
 
                 // Connect the joints into a hand skeleton.
