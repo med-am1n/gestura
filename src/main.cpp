@@ -153,7 +153,13 @@ int main() {
   pointerParticle.SizeVariation     = 0.02f;
   pointerParticle.SizeEnd           = 0.0f;
   pointerParticle.LifeTime          = 0.8f;
-  
+
+  // Sparks shown while a fist is held; size/color/spread are scaled by charge each frame.
+  ParticleProps chargeParticle;
+  chargeParticle.Velocity = { 0.0f, 0.0f };
+  chargeParticle.SizeEnd  = 0.0f;
+  chargeParticle.LifeTime = 0.4f;
+
   glEnable(GL_DEPTH_TEST);
   
   // initialize Imgui
@@ -209,6 +215,22 @@ int main() {
                 if (gesture == "Fist" || gesture == "Thumb" ) {
                     if(particlesCount<100)
                         particlesCount++;
+
+                    // Charging glow: sparks around the fist that grow and redden with charge.
+                    float charge = particlesCount / 100.0f;   // 0..1
+                    glm::vec2 c = toNDC(hand.landmarks[9]);   // 9 = middle-finger base
+                    float aspect = (float)windowWidth / (float)windowHeight;
+                    chargeParticle.Position          = { c.x * aspect, c.y };
+                    chargeParticle.VelocityVariation = glm::vec2(0.3f + 0.7f * charge);
+                    chargeParticle.SizeBegin         = 0.01f + 0.04f * charge;
+                    chargeParticle.SizeVariation     = 0.005f + 0.02f * charge;
+                    // Pale yellow when starting, deep red when fully charged.
+                    chargeParticle.ColorBegin = glm::mix(glm::vec4(1.0f, 0.9f, 0.4f, 1.0f),
+                                                         glm::vec4(1.0f, 0.1f, 0.05f, 1.0f), charge);
+                    chargeParticle.ColorEnd   = glm::vec4(glm::vec3(chargeParticle.ColorBegin) * 0.5f, 0.0f);
+                    int sparks = 1 + (int)(charge * 3.0f);
+                    for (int i = 0; i < sparks; ++i)
+                        particleSystem.Emit(chargeParticle);
                 }
 
                 if (gesture == "Open Palm" && (prevGesture == "Fist" || prevGesture == "Thumb") && particlesCount > 0) {
